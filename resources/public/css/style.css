@@ -1,0 +1,117 @@
+body {
+  margin: auto;
+}
+
+.Content {
+  display: flex;
+  margin: auto;
+  width: 100%;
+  height: 100vh;
+  align-items: center;
+  justify-content: center;
+}
+
+.Cell {
+  background: none;
+  border: solid 2px #DDDDDD;
+  border-left: none;
+  border-top: none;
+  border-collapse: collapse;
+  display: inline-block;
+  padding: 14px;
+}
+
+.Cell:focus {
+  outline: none;
+}
+
+.Cell:first-child {
+  padding-left: 18px;
+}
+
+.Cell:last-child {
+  border-right: none;
+  padding-right: 18px;
+}
+
+.Board__Row {
+  white-space: nowrap;
+}
+
+.Board__Row:first-child .Cell {
+  padding-top: 18px;
+}
+
+.Board__Row:last-child .Cell {
+  border-bottom: none;
+  padding-bottom: 18px;
+}
+
+.PlayerX, .PlayerO, .NoPlayer {
+  width: 35px;
+  height: 35px;
+  box-sizing: content-box;
+}
+
+.PlayerX--Small, .PlayerO--Small {
+  width: 12px;
+  height: 12px;
+  margin: 0 5px;
+}
+
+.PlayerX {
+  animation: retract .3s ease;
+}
+
+.PlayerO {
+  animation: expand .3s ease;
+}
+
+@keyframes expand {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes retract {
+  from {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.NoPlayer {
+  display: inline-block
+}
+
+.GameOver, .CurrentPlayer {
+  color: #939393;
+  font-weight: bold;
+  text-transform: uppercase;
+  height: 50px;
+  display:flex;
+  align-items: center;
+}
+
+.GameOver__Image {
+  margin-right: 10px;
+}
+
+.GameOver__Image:hover {
+  filter: saturate(3);
+}
+
+.GameOver__Text, .CurrentPlayer__Text {
+  padding: 7px 20px 4px;
+  font-size: 1em;
+  height: 20px;
+  border: 1px solid #DDDDDD;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.CurrentPlayer__Text {
+  margin: auto;
+  margin-top: 20px;
+}
