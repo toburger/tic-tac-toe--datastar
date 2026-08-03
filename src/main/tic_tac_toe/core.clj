@@ -4,7 +4,7 @@
    [reitit.ring :as rr]
    [reitit.ring.middleware.parameters :as rmparams]
    [starfederation.datastar.clojure.adapter.ring
-    :refer [->sse-response on-open]]
+    :refer [->sse-response on-close on-open]]
    [starfederation.datastar.clojure.api :as d*]
    [tic-tac-toe.game-logic :as game-logic]))
 
@@ -81,8 +81,7 @@
        "wins!"])]])
 
 (defn game-view [{:keys [board current-player winner]}]
-  [:div.Content {:id "game"
-                 :data-on-interval "@get('/refresh')"}
+  [:div.Content {:id "game"}
    [:div.App
     (if winner
       (game-over winner)
@@ -107,10 +106,15 @@
       :src
       "https://cdn.jsdelivr.net/gh/starfederation/datastar@main/bundles/datastar.js"}]
     [:title "Tic Tac Toe - Datastar"]]
-   [:body content]])
+   [:body
+    [:div {:data-init "@get('/stream')"}
+     content]]])
 
 (defn render-html [view]
   (h/html (home-page view)))
+
+(defn render-game [game]
+  (h/html (game-view game)))
 
 (defonce !game (atom initial-state))
 
@@ -125,18 +129,44 @@
                          {:status 404
                           :body (str "resource not found: " uri)})}))
 
-(defn patch-game [request]
-  (->sse-response
-   request
-   {on-open
-    (fn [sse]
-      (d*/with-open-sse sse
-        (d*/patch-elements!
-         sse
-         (render-html (game-view @!game)))))}))
+(defonce !connections
+  (atom #{}))
 
-(defn refresh-handler [_]
-  (patch-game @!game))
+;; `defonce` preserves the old value during REPL reloads. Migrate the registry
+;; created by earlier versions of this namespace, where it was initialized as a map.
+(when-not (set? @!connections)
+  (reset! !connections #{}))
+
+(defn stream-handler [request]
+  (let [closed (promise)]
+    (->sse-response
+     request
+     {on-open
+      (fn [sse]
+        (swap! !connections conj sse)
+        (try
+          (d*/patch-elements!
+           sse
+           (render-game @!game))
+
+          ;; The Ring adapter writes synchronously. Keep this callback alive so
+          ;; Jetty does not close the response immediately after the first event.
+          @closed
+          (finally
+            (swap! !connections disj sse))))
+
+      on-close
+      (fn [sse]
+        (swap! !connections disj sse)
+        (deliver closed true))})))
+
+(defn broadcast-game! []
+  (let [html (render-game @!game)]
+    (doseq [sse @!connections]
+      (try
+        (d*/patch-elements! sse html)
+        (catch Exception _
+          (swap! !connections disj sse))))))
 
 (defn play-move [{:keys [board current-player] :as state} x y]
   (if (game-logic/can-update-cell? board x y)
@@ -152,11 +182,13 @@
   (let [x (parse-long (get-in request [:query-params "x"]))
         y (parse-long (get-in request [:query-params "y"]))]
     (swap! !game play-move x y)
-    (patch-game request)))
+    (broadcast-game!)
+    {:status 204}))
 
-(defn restart-handler [request]
+(defn restart-handler [_]
   (reset! !game initial-state)
-  (patch-game request))
+  (broadcast-game!)
+  {:status 204})
 
 (def routes
   [["/" {:handler #'home-handler}]
@@ -165,7 +197,7 @@
      :middleware [rmparams/parameters-middleware]}]
    ["/restart"
     {:post restart-handler}]
-   ["/refresh" refresh-handler]
+   ["/stream" stream-handler]
    ["/css/*" static-resource-handler]
    ["/img/*" static-resource-handler]
    ["/js/*" static-resource-handler]])
