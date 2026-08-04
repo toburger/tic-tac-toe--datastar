@@ -1,9 +1,9 @@
 (ns tic-tac-toe.main
   (:require [tic-tac-toe.server :as server]
-            [tic-tac-toe.core :as c]))
+            [tic-tac-toe.routes :as routes]))
 
 (defn -main [& _]
-  (let [server (server/start! c/handler)]
+  (let [server (server/start! routes/handler)]
     (.addShutdownHook (Runtime/getRuntime)
                       (Thread. (fn []
                                  (server/stop! server)

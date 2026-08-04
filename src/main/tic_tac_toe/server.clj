@@ -1,5 +1,5 @@
 (ns tic-tac-toe.server
-  (:require [tic-tac-toe.core :as c]
+  (:require [tic-tac-toe.routes :as routes]
             [ring.adapter.jetty :as jetty])
   (:import (org.eclipse.jetty.server Server)))
 
@@ -24,4 +24,4 @@
            (start! handler opts))))
 
 (comment
-  (reboot-jetty-server! #'c/handler))
+  (reboot-jetty-server! #'routes/handler))

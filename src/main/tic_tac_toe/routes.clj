@@ -1,4 +1,4 @@
-(ns tic-tac-toe.core
+(ns tic-tac-toe.routes
   (:require
    [reitit.ring :as rr]
    [reitit.ring.middleware.parameters :as rmparams]
